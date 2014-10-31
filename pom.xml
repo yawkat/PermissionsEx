@@ -126,10 +126,9 @@
     </build>
     <dependencies>
         <dependency>
-            <groupId>org.bukkit</groupId>
-            <artifactId>bukkit</artifactId>
-            <version>1.7.9-R0.1</version>
-            <type>jar</type>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot</artifactId>
+            <version>1.7.10-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -169,16 +168,16 @@
     </dependencies>
     <repositories>
         <repository>
-            <id>bukkit-repo</id>
-            <url>http://repo.bukkit.org/content/groups/public</url>
-        </repository>
-        <repository>
             <id>pex-repo</id>
             <url>http://pex-repo.zachsthings.com</url>
         </repository>
         <repository>
             <id>gravity-repo</id>
             <url>http://repo.gravitydevelopment.net</url>
+        </repository>
+        <repository>
+            <id>yawkat</id>
+            <url>http://mvn.yawk.at/</url>
         </repository>
     </repositories>
 </project>
