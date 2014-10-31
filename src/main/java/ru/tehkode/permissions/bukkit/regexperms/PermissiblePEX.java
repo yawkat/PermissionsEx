@@ -18,6 +18,10 @@
  */
 package ru.tehkode.permissions.bukkit.regexperms;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang.Validate;
 import org.bukkit.entity.Player;
 import org.bukkit.permissions.Permissible;
@@ -74,6 +78,15 @@ public class PermissiblePEX extends PermissibleBase {
 	protected final Map<String, PermissionCheckResult> cache = new ConcurrentHashMap<>();
 	private final Object permissionsLock = new Object();
 
+	private final Cache<String, Boolean> hasPermissionCache = CacheBuilder.newBuilder()
+			.expireAfterWrite(10, TimeUnit.SECONDS)
+			.build(new CacheLoader<String, Boolean>() {
+				@Override
+				public Boolean load(String s) throws Exception {
+					return hasPermission0(s);
+				}
+			});
+
 	@SuppressWarnings("unchecked")
 	public PermissiblePEX(Player player, PermissionsEx plugin) {
 		super(player);
@@ -124,6 +137,10 @@ public class PermissiblePEX extends PermissibleBase {
 
 	@Override
 	public boolean hasPermission(String permission) {
+		return hasPermissionCache.getUnchecked(permission);
+	}
+
+	private boolean hasPermission0(String permission) {
 		PermissionCheckResult res = permissionValue(permission);
 
 		switch (res) {
@@ -147,24 +164,7 @@ public class PermissiblePEX extends PermissibleBase {
 
 	@Override
 	public boolean hasPermission(Permission permission) {
-		PermissionCheckResult res = permissionValue(permission.getName());
-
-		switch (res) {
-			case TRUE:
-			case FALSE:
-				return res.toBoolean();
-			case UNDEFINED:
-			default:
-				if (super.isPermissionSet(permission.getName())) {
-					final boolean ret = super.hasPermission(permission);
-					if (isDebug()) {
-						plugin.getLogger().info("User " + player.getName() + " checked for permission '" + permission.getName() + "', superperms-matched a value of " + ret);
-					}
-					return ret;
-				} else {
-					return permission.getDefault().getValue(player.isOp());
-				}
-		}
+		return hasPermission(permission.getName());
 	}
 
 	@Override

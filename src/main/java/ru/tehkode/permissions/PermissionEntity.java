@@ -18,6 +18,9 @@
  */
 package ru.tehkode.permissions;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.bukkit.Bukkit;
 import org.bukkit.permissions.Permission;
@@ -46,6 +50,15 @@ public abstract class PermissionEntity {
 	protected Map<String, List<String>> timedPermissions = new ConcurrentHashMap<>();
 	protected Map<String, Long> timedPermissionsTime = new ConcurrentHashMap<>();
 	protected boolean debugMode = false;
+
+    private final Cache<WorldPermissionTuple, Boolean> permissionCache =
+            CacheBuilder.newBuilder().expireAfterWrite(2, TimeUnit.SECONDS)
+                    .build(new CacheLoader<WorldPermissionTuple, Boolean>() {
+                        @Override
+                        public Boolean load(WorldPermissionTuple tuple) throws Exception {
+                            return computePermission(tuple);
+                        }
+                    });
 
 	public PermissionEntity(String name, PermissionManager manager) {
 		this.manager = manager;
@@ -206,10 +219,15 @@ public abstract class PermissionEntity {
 			return true;
 		}
 
-		String expression = getMatchingExpression(permission, world);
+        return permissionCache.getUnchecked(new WorldPermissionTuple(world, permission));
+    }
 
-		if (this.isDebug()) {
-			manager.getLogger().info("User " + this.getIdentifier() + " checked for \"" + permission + "\", " + (expression == null ? "no permission found" : "\"" + expression + "\" found"));
+    private boolean computePermission(WorldPermissionTuple tuple) {
+        String expression = getMatchingExpression(tuple.permission, tuple.world);
+
+        if (this.isDebug()) {
+			manager.getLogger().info("User " + this.getIdentifier() + " checked for \"" + tuple.permission + "\", " +
+						             (expression == null ? "no permission found" : "\"" + expression + "\" found"));
 		}
 
 		return explainExpression(expression);
@@ -928,4 +946,42 @@ public abstract class PermissionEntity {
 	public void setParentsIdentifier(List<String> parentNames) {
 		setParentsIdentifier(parentNames, null);
 	}
+
+    private static class WorldPermissionTuple {
+        private final String world;
+        private final String permission;
+
+        private WorldPermissionTuple(String world, String permission) {
+            this.world = world;
+            this.permission = permission;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            WorldPermissionTuple that = (WorldPermissionTuple) o;
+
+            if (!permission.equals(that.permission)) {
+                return false;
+            }
+            if (!world.equals(that.world)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = world.hashCode();
+            result = 31 * result + permission.hashCode();
+            return result;
+        }
+    }
 }
