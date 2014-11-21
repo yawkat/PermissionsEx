@@ -48,6 +48,11 @@
                 <phase>package</phase>
                 <configuration>
                   <createDependencyReducedPom>false</createDependencyReducedPom>
+                    <artifactSet>
+                        <excludes>
+                            <exclude>org.bukkit:bukkit:*</exclude>
+                        </excludes>
+                    </artifactSet>
                   <relocations>
                     <relocation>
                       <pattern>net.gravitydevelopment.updater</pattern>
